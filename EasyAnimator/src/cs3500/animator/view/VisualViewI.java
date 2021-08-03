@@ -34,7 +34,7 @@ public class VisualViewI extends AbstractViews {
 
   @Override
   protected void createDrawPanel() {
-    this.drawPanel = new DrawPanelVisual(this.frame, this.model, this.speed, this.bounds);
+    this.drawPanel = new DrawPanelVisual(null, this.model, this.speed, this.bounds);
   }
 
   /**

@@ -42,7 +42,7 @@ public interface IAnimation {
    *
    * @param timeUnit time to get "Cel" at
    * @return Current state of animation frame at a given time in the form of a Map with shape ids
-   *         and the corresponding current states of the shapes.
+   * and the corresponding current states of the shapes.
    */
   Map<String, IShape> getFrameAt(int timeUnit);
 

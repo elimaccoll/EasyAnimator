@@ -130,6 +130,11 @@ public class Animation implements IAnimation {
           shape2 = new Ellipse(w2, h2, new Position2D(x2, y2), 0, new Color(r2, g2, b2));
           animation.addMotion(name, new Motion(shape1, shape2, t1, t2));
           break;
+        case Plus:
+          shape1 = new Plus(w1, h1, new Position2D(x1, y1), 0, new Color(r1, g1, b1));
+          shape2 = new Plus(w2, h2, new Position2D(x2, y2), 0, new Color(r2, g2, b2));
+          animation.addMotion(name, new Motion(shape1, shape2, t1, t2));
+          break;
         default:
           throw new IllegalArgumentException("Unsupported shape type " + type);
       }

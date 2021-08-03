@@ -4,6 +4,7 @@ import cs3500.animator.model.IAnimation;
 import cs3500.animator.model.IShape;
 import cs3500.animator.model.Motion;
 
+import cs3500.animator.model.Polygon;
 import java.awt.Color;
 import java.io.IOException;
 import java.util.List;
@@ -97,6 +98,54 @@ public final class SVGViewI implements IAnimationView {
     ap.append(closeRectangle());
   }
 
+  protected void polygonSVG(String name, List<Motion> motions) throws IOException {
+    ap.append(openPolygon(name, motions.get(0).getStartShape()));
+    ap.append(appear((int) (motions.get(0).getStartTime() * msPerUnit)));
+    for (Motion motion : motions) {
+      int tstart = (int) (motion.getStartTime() * msPerUnit);
+      int duration = (int) ((motion.getEndTime() - motion.getStartTime()) * msPerUnit);
+      if (motion.getStartShape().getX() != motion.getEndShape().getX()
+          || motion.getStartShape().getY() != motion.getEndShape().getY()
+          || motion.getStartShape().getWidth() != motion.getEndShape().getWidth()
+          || motion.getStartShape().getHeight() != motion.getEndShape().getHeight()) {
+        Polygon ps = (Polygon) motion.getEndShape();
+        ps.setupXYCoords();
+        String pointString = polygonPointString(ps.getXCoords(), ps.getYCoords());
+        ap.append(animateMotion("points", duration, tstart, pointString));
+      }
+      if (!motion.getStartShape().getColor().equals(motion.getEndShape().getColor())) {
+        ap.append(animateMotion("fill", duration, tstart, motion.getStartShape().getColor(),
+            motion.getEndShape().getColor()));
+      }
+
+    }
+    ap.append(closePolygon());
+  }
+
+  public String openPolygon(String name, IShape s) {
+    Polygon ps = (Polygon) s;
+    ps.setupXYCoords();
+    String string = String.format(
+        "<polygon id=\"%s\" points=\"%s\" fill=\"rgb(%d,%d,%d)\" visibility=\"hidden\" >",
+        name, polygonPointString(ps.getXCoords(), ps.getYCoords()), s.getColor().getRed(),
+        s.getColor().getGreen(),
+        s.getColor().getBlue());
+    return string + "\n";
+  }
+
+  public String closePolygon() {
+    return "</polygon>" + "\n";
+  }
+
+  protected String polygonPointString(int[] xs, int[] ys) {
+    assert (xs.length == ys.length);
+    StringBuilder builder = new StringBuilder();
+    for (int i = 0; i < xs.length; ++i) {
+      builder.append(String.format("%d,%d ", xs[i], ys[i]));
+    }
+    return builder.toString();
+  }
+
   /**
    * Adapts motions for Ellipse class shapes into XML compliant SVG file format.
    *
@@ -152,6 +201,8 @@ public final class SVGViewI implements IAnimationView {
         rectangleSVG(name, motions);
       } else if (type.equals("Ellipse")) {
         ellipseSVG(name, motions);
+      } else if (type.equals("Plus")) {
+        polygonSVG(name, motions);
       } else {
         System.err.println("Unsupported shape : " + type);
       }
@@ -259,6 +310,13 @@ public final class SVGViewI implements IAnimationView {
             + "from=\"rgb(%d,%d,%d)\" to=\"rgb(%d,%d,%d)\" fill=\"freeze\" />",
         tstart, duration, attribute, from.getRed(), from.getGreen(), from.getBlue(), to.getRed(),
         to.getGreen(), to.getBlue());
+    return string + "\n";
+  }
+
+  public String animateMotion(String attribute, int duration, int tstart, String to) {
+    String string = String.format(
+        "<animate attributeType=\"xml\" begin=\"%dms\" dur=\"%dms\" attributeName=\"%s\" to=\"%s\" fill=\"freeze\" />",
+        tstart, duration, attribute, to);
     return string + "\n";
   }
 

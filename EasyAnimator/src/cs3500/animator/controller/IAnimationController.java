@@ -1,5 +1,7 @@
 package cs3500.animator.controller;
 
+import java.util.List;
+
 /**
  * Interface for the controller of an animation.
  */
@@ -13,4 +15,6 @@ public interface IAnimationController {
    * @param viewName Desired view type of the animation (text, visual, svg).
    */
   void animate(int speed, String viewName);
+
+  void animateSloMo(int speed, String viewName, List<Integer> sloMoIntervals);
 }

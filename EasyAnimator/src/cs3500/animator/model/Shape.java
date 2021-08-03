@@ -45,7 +45,7 @@ public abstract class Shape implements Cloneable, IShape {
    * Additional Constructor for Shape that only takes the dimensions of the shape and sets default
    * values for the remaining fields.
    *
-   * @param width width of shape.
+   * @param width  width of shape.
    * @param height height of shape.
    */
   public Shape(int width, int height) {

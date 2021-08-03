@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 
@@ -47,10 +49,10 @@ public final class Excellence {
     String inputFile = null;
     String output = null;
     String viewName = null;
+    String slomoFile = null;
+    List<Integer> sloMoIntervals = new ArrayList<>();
+    int sloMoIndex = 0;
     int speed = 1;
-    if ((args.length % 2) != 0) {
-      throw new IllegalArgumentException("Arguments must be provided in pairs.");
-    }
 
     try {
       for (int i = 0; i < args.length; i += 2) {
@@ -67,6 +69,9 @@ public final class Excellence {
           case "-speed":
             speed = Integer.parseInt(args[i + 1]);
             break;
+          case "-slomo":
+            slomoFile = args[i + 1];
+            break;
           default:
             throw new IllegalArgumentException("Unsupported command line option " + args[i] + ".");
         }
@@ -76,14 +81,20 @@ public final class Excellence {
             "Animation file (-in) and view name (-view) must be provided.");
       }
     } catch (IllegalArgumentException exp) {
-      exp.printStackTrace();
       popupErrorAndExit(exp.getMessage());
     }
 
     Appendable appendable = null;
     InputStream in = Excellence.class.getResourceAsStream("/inputs/" + inputFile);
-
     Readable readable = new InputStreamReader(in);
+
+    Readable slomoRd = null;
+    try {
+      InputStream slomoIn = Excellence.class.getResourceAsStream("/inputs/" + slomoFile);
+      slomoRd = new InputStreamReader(slomoIn);
+    } catch (NullPointerException exp) {
+    }
+
     FileWriter writer = null;
     try {
       if (output != null) {
@@ -92,16 +103,21 @@ public final class Excellence {
       } else {
         appendable = new PrintStream(System.out);
       }
-      AnimationController controller = new AnimationController(readable, appendable);
-      controller.animate(speed, viewName);
+      AnimationController controller = new AnimationController(readable, appendable, slomoRd);
+      if (viewName.equals("interactive") && sloMoIndex != 0) {
+        for (int x : sloMoIntervals) {
+          System.out.print(x + " ");
+        }
+        controller.animateSloMo(speed, viewName, sloMoIntervals);
+      } else {
+        controller.animate(speed, viewName);
+      }
       if (writer != null) {
         writer.close();
       }
     } catch (IOException ioe) {
-      ioe.printStackTrace();
       popupErrorAndExit("Failed to open output file " + output + ".");
     }
     System.out.println("\nCompleted.");
   }
-
 }

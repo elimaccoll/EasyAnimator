@@ -2,42 +2,45 @@ package cs3500.animator.view;
 
 import cs3500.animator.model.IAnimation;
 import cs3500.animator.model.IAnimation.Bounds;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.FlowLayout;
+import cs3500.animator.model.Motion;
+import cs3500.animator.util.SlomoReader;
+
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Hashtable;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JSlider;
+import java.awt.event.ItemEvent;
+import java.util.*;
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import java.awt.event.ItemListener;
+import java.util.List;
+import java.util.stream.Collectors;
+
 
 /**
  * Represents an interactive view of an animation that utilizes Java Swing to display the animation
  * and create a GUI to interact with the animation.
  */
-public class CompositeView extends AbstractViews implements ActionListener, ChangeListener {
+public class CompositeView extends AbstractViews implements ActionListener, ChangeListener,
+    ItemListener {
 
-  private boolean paused = false;
-  private boolean looping = false;
-  private JLabel buttonPress;
-  private JLabel speedDisplay;
-  private JSlider speedSlider;
-  private JButton start;
-  private Hashtable<Integer, JLabel> speedLabels;
+  protected boolean paused = false;
+  protected boolean looping = false;
+  protected boolean fill = true;
+  protected JLabel buttonPress;
+  protected JLabel speedDisplay;
+  protected JSlider speedSlider;
+  protected JButton start;
+  protected Hashtable<Integer, JLabel> speedLabels;
+  protected Readable slomoRd;
 
-  private JPanel toolbar;
+  protected JPanel toolbar;
 
   @Override
   public void createDrawPanel() {
-    this.drawPanel = new DrawPanelComposite(this.frame, this.model, this.speed, this.bounds);
+    this.drawPanel = new DrawPanelComposite(this, this.model, this.speed, this.bounds,
+        this.slomoRd);
   }
 
   /**
@@ -46,18 +49,27 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
    * canvas details are given by x, y, w (width), and h (height), and the speed of the animation
    * comes from the user command-line input.
    *
-   * @param model IAnimation model that the composite view is being created for.
-   * @param ap    Appendable to display textual information.
-   * @param x     x coordinate of canvas.
-   * @param y     y coordinate of canvas.
-   * @param w     width of canvas.
-   * @param h     height of canvas.
-   * @param speed speed of animation.
+   * @param model   IAnimation model that the composite view is being created for.
+   * @param ap      Appendable to display textual information.
+   * @param x       x coordinate of canvas.
+   * @param y       y coordinate of canvas.
+   * @param w       width of canvas.
+   * @param h       height of canvas.
+   * @param speed   speed of animation.
+   * @param slomoRd readable for slow motion input.
    */
-  public CompositeView(IAnimation model, Appendable ap, int x, int y, int w, int h, int speed) {
+  public CompositeView(IAnimation model, Appendable ap, int x, int y, int w, int h, int speed,
+      Readable slomoRd) {
     super(model, ap, x, y, w, h, speed);
+
+    this.slomoRd = slomoRd;
+    ((DrawPanelComposite) drawPanel).setSlomoInput(slomoRd);
+    UIManager.put("ToolTip.background", Color.ORANGE);
+    UIManager.put("ToolTip.foreground", Color.BLACK);
+    UIManager.put("ToolTip.font", new Font("Arial", Font.BOLD, 14));
+
     this.toolbar();
-    frame.add(toolbar, BorderLayout.NORTH);
+    this.add(toolbar, BorderLayout.NORTH);
   }
 
   /**
@@ -79,21 +91,29 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
    */
   private void toolbar() {
     // Start button
-    this.start = new JButton("Start");
-    this.start.setActionCommand("start");
-    this.start.addActionListener(this);
+    start = new JButton("Start");
+    start.setActionCommand("start");
+    start.addActionListener(this);
+    start.setToolTipText("Click to start animation");
+
     // Pause button
     JButton pause = new JButton("Pause");
     pause.setActionCommand("pause");
     pause.addActionListener(this);
+    pause.setToolTipText("Click to pause animation");
+
     // Resume button
     JButton play = new JButton("Resume");
     play.setActionCommand("play");
     play.addActionListener(this);
+    play.setToolTipText("Click to resume animation");
+
     // Restart button
     JButton restart = new JButton("Restart");
     restart.setActionCommand("restart");
     restart.addActionListener(this);
+    restart.setToolTipText("Click to re-start animation");
+
     // Speed slider
     speedSlider = new JSlider(1, 100, 1);
     speedLabels = new Hashtable<>();
@@ -112,27 +132,59 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
     loopCB.setSelected(false);
     loopCB.setActionCommand("loop");
     loopCB.addActionListener(this);
-    JPanel tb = new JPanel();
+
+    // Toggle discrete time check box
+    JCheckBox discreteCB = new JCheckBox("Discrete");
+    discreteCB.setSelected(false);
+    discreteCB.setActionCommand("discrete");
+    discreteCB.addItemListener(this);
+
+    JPanel fillChkBoxPanel = new JPanel();
+    fillChkBoxPanel.setBorder(BorderFactory.createTitledBorder("Fill/Draw"));
+
+    JCheckBox fillCB = new JCheckBox("Fill");
+    fillCB.setSelected(true);
+    fillCB.setActionCommand("fill");
+    fillCB.addActionListener(this);
+    JPanel buttonPanel = new JPanel();
 
     // Text display panel that displays what button was pressed.
     buttonPress = new JLabel("Press a button!");
     buttonPress.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
     // Adding buttons to toolbar
-    tb.add(buttonPress);
-    tb.add(start);
-    tb.add(play);
-    tb.add(pause);
-    tb.add(speedSlider);
+    buttonPanel.add(buttonPress);
+    buttonPanel.add(start);
+    buttonPanel.add(play);
+    buttonPanel.add(pause);
+
+    JPanel speedPanel = new JPanel();
+    speedPanel.add(speedSlider);
 
     // Speed display
     speedDisplay = new JLabel("Speed: " + this.speed);
-    tb.add(speedDisplay);
+    speedPanel.add(speedDisplay);
 
-    tb.add(loopCB);
-    this.toolbar = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 1));
-    this.toolbar.add(tb);
+    JPanel chkBoxPanel = new JPanel();
+    chkBoxPanel.add(loopCB);
+    chkBoxPanel.add(discreteCB);
+    chkBoxPanel.add(fillCB);
+
+    this.toolbar = new JPanel();
+    toolbar.setLayout(new BorderLayout());
+    toolbar.add(BorderLayout.NORTH, buttonPanel);
+    toolbar.add(BorderLayout.CENTER, speedPanel);
+    toolbar.add(BorderLayout.SOUTH, chkBoxPanel);
     toolbar.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+
+      /*
+        Draw/Fill check box:
+         */
+
+    this.setResizable(false);
+    this.setLocationRelativeTo(null);
+    this.add(toolbar);
+    this.add(scrollPane);
   }
 
   @Override
@@ -147,11 +199,11 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
         break;
       case "pause":
         if (!drawPanel.isStarted()) {
-          JOptionPane.showMessageDialog(frame, "Animation not started. "
+          JOptionPane.showMessageDialog(this, "Animation not started. "
               + "Press 'Start' to begin.");
         }
         if (drawPanel.isOver()) {
-          JOptionPane.showMessageDialog(frame, "Animation is over. "
+          JOptionPane.showMessageDialog(this, "Animation is over. "
               + "Press 'Restart' to play again.");
         } else if (paused) {
           btn = "Already Paused!";
@@ -163,11 +215,11 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
         break;
       case "play":
         if (!drawPanel.isStarted()) {
-          JOptionPane.showMessageDialog(frame, "Animation not started. "
+          JOptionPane.showMessageDialog(this, "Animation not started. "
               + "Press 'Start' to begin.");
         }
         if (drawPanel.isOver()) {
-          JOptionPane.showMessageDialog(frame, "Animation is over. "
+          JOptionPane.showMessageDialog(this, "Animation is over. "
               + "Press restart to play again.");
         } else if (!paused) {
           btn = "Already Playing!";
@@ -180,7 +232,7 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
       case "restart":
         if (!drawPanel.isOver()) {
           if (this.looping) {
-            JOptionPane.showMessageDialog(frame, "Animation is already looping.");
+            JOptionPane.showMessageDialog(this, "Animation is already looping.");
           } else {
             drawPanel.restart();
             btn = "Restart set";
@@ -195,6 +247,20 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
         this.looping = !this.looping;
         btn = "Looping set";
         break;
+      case "discrete":
+        drawPanel.discrete(speedSlider.getValue() + 1);
+        if (paused) {
+          drawPanel.tm.stop();
+        } else {
+          drawPanel.tm.start();
+        }
+        btn = "Discrete time set";
+        break;
+      case "fill":
+        drawPanel.fill();
+        this.fill = !this.fill;
+        btn = "fill set";
+        break;
       default:
         break;
     }
@@ -202,12 +268,36 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
   }
 
   @Override
-  public void stateChanged(ChangeEvent e) {
-    int newSpeed = speedSlider.getValue() + 1;
-    speedDisplay.setText("Speed: " + (newSpeed - 1));
-    buttonPress.setText("Speed Changed");
-    drawPanel.speed(newSpeed, paused);
+  public void itemStateChanged(ItemEvent e) {
+    String who = ((JCheckBox) e.getItemSelectable()).getActionCommand();
+    System.out.println("who " + who);
+    switch (who) {
+      case "discrete":
+        ((DrawPanelComposite) drawPanel).discrete(e.getStateChange() == ItemEvent.SELECTED);
+        break;
+      default:
+        System.out.println("Unsupported event : " + who);
+    }
+
   }
+
+  @Override
+  public void stateChanged(ChangeEvent e) {
+    if (drawPanel.isDiscrete()) {
+      JOptionPane.showMessageDialog(this, "Cannot change speed in discrete time.");
+    } else {
+      int newSpeed = speedSlider.getValue() + 1;
+      speedDisplay.setText("Speed: " + (newSpeed - 1));
+      buttonPress.setText("Speed Changed");
+      drawPanel.speed(newSpeed);
+      if (paused) {
+        drawPanel.tm.stop();
+      } else {
+        drawPanel.tm.start();
+      }
+    }
+  }
+
 
   /**
    * Representation of a draw panel for the composite (interactive) view.  It extends
@@ -225,14 +315,86 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
      * @param speed  The speed of the animation from the user command line input
      * @param bounds The bounds of the canvas for the animation
      */
-    DrawPanelComposite(JFrame frame, IAnimation model, int speed, Bounds bounds) {
+    private List<SlomoReader.SlowMotion> slowMotions = new ArrayList();
+    private boolean fastFwd = false;
+    private List<Integer> orderedFrames = null;
+
+    DrawPanelComposite(JFrame frame, IAnimation model, int speed, Bounds bounds, Readable slomoRd) {
       super(frame, model, speed, bounds);
+      //tm.setDelay(1000/speed);
     }
+//
+    private int getNextFrame() {
+      ++count;
+      if (!fastFwd) {
+        return count;
+      } else {
+        // find the first start/end frame number in the future, and move current frame to it
+        for (int frame : orderedFrames) {
+          if (frame < count) {
+            continue;
+          } else {
+            count = frame;
+            break;
+          }
+        }
+        return count;
+      }
+    }
+
+    private void setSlomoInput(Readable slomoRd) {
+      if (slomoRd != null) {
+        slowMotions = (new SlomoReader()).parseFile(slomoRd);
+      }
+    }
+
+    private boolean slowMotionMode(int frame) {
+      if (slowMotions != null) {
+        for (SlomoReader.SlowMotion slow : slowMotions) {
+          if (slow.getStartFrame() <= frame && frame < slow.getEndFrame()) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    public void discrete(boolean fastFwd) {
+      this.fastFwd = fastFwd;
+      if (this.fastFwd && this.orderedFrames == null) {
+        orderedFrames = getFastForwardFrames();
+      }
+    }
+
+    private List<Integer> getFastForwardFrames() {
+      Map<String, List<Motion>> animation = model.getAnimationDescription();
+      List<Integer> frames = new ArrayList<>();
+      for (List<Motion> motions : animation.values()) {
+        for (Motion motion : motions) {
+          frames.add(motion.getStartTime());
+          frames.add(motion.getEndTime());
+        }
+      }
+      // remove possible duplicates
+      frames = frames.stream().distinct().collect(Collectors.toList());
+      Collections.sort(frames);
+      return frames;
+    }
+
+    private int discreteCounter = 0;
+
 
     @Override
     public void actionPerformed(ActionEvent e) {
+
       if (started) {
-        ++count;
+        int frameNum = getNextFrame();
+        if ((!fastFwd) && slowMotionMode(frameNum)) {
+          tm.setDelay(1000);
+        } else {
+          tm.setDelay(1000 / speed);
+        }
+
         if (count > bounds.maxT) {
           //System.out.println("listeners : " + tm.getActionListeners().length);
           for (ActionListener al : tm.getActionListeners()) {
@@ -250,10 +412,14 @@ public class CompositeView extends AbstractViews implements ActionListener, Chan
             this.done = false;
             tm.addActionListener(this);
           }
+          if (discrete) {
+            shapes = model.getFrameAt(bounds.maxT);
+            repaint();
+          }
         } else {
           this.done = false;
-          shapes = model.getFrameAt(count);
-          repaint();
+            shapes = model.getFrameAt(frameNum);
+            repaint();
         }
       }
     }

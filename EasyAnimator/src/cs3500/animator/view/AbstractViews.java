@@ -10,12 +10,11 @@ import javax.swing.JScrollPane;
  * is extended by CompositeView, which then incorporates the additional functionality that comes
  * along with the GUI.
  */
-public abstract class AbstractViews implements IAnimationView {
+public abstract class AbstractViews extends JFrame implements IAnimationView {
 
   protected final IAnimation model;
   protected final int speed;
   protected final IAnimation.Bounds bounds;
-  protected JFrame frame;
   protected AbstractDrawPanel drawPanel;
   protected JScrollPane scrollPane;
 
@@ -44,29 +43,30 @@ public abstract class AbstractViews implements IAnimationView {
    */
   public AbstractViews(IAnimation model, Appendable ap, int x, int y, int w, int h,
       int speed) {
+    super(String.format("Animator. (%d, %d)  %d x %d", x, y, w, h));
     checkValidInputs(model, ap, w, h, speed);
     this.model = model;
     this.speed = speed;
     this.bounds = model.getAnimationBounds();
-    this.frame = new JFrame(String.format("Animator. (%d, %d)  %d x %d", x, y, w, h));
     createDrawPanel();
     scrollPane = new JScrollPane(drawPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
         JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-    drawPanel.setLocation(x, y);
+    //drawPanel.setLocation(x, y);
+    drawPanel.setAutoscrolls(true);
     scrollPane.setLocation(x, y);
     scrollPane.getHorizontalScrollBar().setMinimum(x);
     scrollPane.getVerticalScrollBar().setMinimum(y);
-    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    frame.setResizable(false);
-    frame.setSize(w + 57, h + 57);
-    frame.setLocationRelativeTo(null);
-    frame.add(scrollPane);
+    this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    this.setResizable(false);
+    this.setSize(w + 150, h + 200);
+    this.setLocationRelativeTo(null);
+    this.add(scrollPane);
   }
 
   @Override
   public void render() {
-    frame.setVisible(true);
+    this.setVisible(true);
   }
 
   /**

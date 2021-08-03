@@ -5,7 +5,8 @@ package cs3500.animator.model;
  */
 public enum ShapeType {
   Rectangle("Rectangle"),
-  Ellipse("Ellipse");
+  Ellipse("Ellipse"),
+  Plus("Plus");
 
   private final String shapeType;
 

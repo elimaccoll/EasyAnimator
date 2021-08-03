@@ -277,8 +277,6 @@ public final class GenerateAnimation {
 
   /**
    * Prints the shapes that are not moving while two other shapes are being swapped.
-   *
-   * @param animation FileWriter to generate txt file with animation instructions
    * @param i         index of one shape being swapped
    * @param minAt     index of the other shape being swapped
    */
@@ -354,5 +352,7 @@ public final class GenerateAnimation {
     int[] arr = generateArray(size, maxShapeHeight);
     GenerateAnimation rand = new GenerateAnimation(arr);
     rand.printArray();
+
+
   }
 }

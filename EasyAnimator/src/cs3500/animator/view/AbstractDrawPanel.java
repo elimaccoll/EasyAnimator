@@ -2,10 +2,16 @@ package cs3500.animator.view;
 
 import cs3500.animator.model.IAnimation;
 import cs3500.animator.model.IShape;
+import cs3500.animator.model.Motion;
+import cs3500.animator.model.Polygon;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -26,6 +32,7 @@ public abstract class AbstractDrawPanel extends JPanel implements ActionListener
   Map<String, IShape> shapes;
   protected int n;
   protected Timer tm;
+  private boolean fill = true;
 
   /**
    * Constructor for AbstractDrawPanel that takes in the necessary information to create a draw
@@ -54,10 +61,30 @@ public abstract class AbstractDrawPanel extends JPanel implements ActionListener
       g.setColor(shape.getColor());
       switch (shape.getShapeType()) {
         case Rectangle:
-          g.fillRect(shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight());
+          if (fill) {
+            g.fillRect(shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight());
+          } else {
+            g.drawRect(shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight());
+          }
           break;
         case Ellipse:
-          g.fillOval(shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight());
+          // x, y are corner position; width and height are diameters
+          if (fill) {
+            g.fillOval(shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight());
+          } else {
+            g.drawOval(shape.getX(), shape.getY(), shape.getWidth(), shape.getHeight());
+          }
+          break;
+        case Plus:
+          Polygon ps = (Polygon) shape;
+          ps.setupXYCoords();
+          int[] xs = ps.getXCoords();
+          int[] ys = ps.getYCoords();
+          if (fill) {
+            g.fillPolygon(xs, ys, xs.length);
+          } else {
+            g.drawPolygon(xs, ys, xs.length);
+          }
           break;
         default:
           break;
@@ -65,6 +92,11 @@ public abstract class AbstractDrawPanel extends JPanel implements ActionListener
     }
     tm.start();
   }
+
+  public void fill() {
+    this.fill = !this.fill;
+  }
+
 
   /**
    * Helper method to ensure constructor arguments are valid and not null.
@@ -76,9 +108,6 @@ public abstract class AbstractDrawPanel extends JPanel implements ActionListener
    */
   private void checkValidInputs(IAnimation model, JFrame frame, IAnimation.Bounds bounds,
       int speed) {
-    if (frame == null) {
-      throw new IllegalArgumentException("Frame is null.");
-    }
     if (model == null) {
       throw new IllegalArgumentException("Model is null.");
     }
@@ -108,6 +137,7 @@ public abstract class AbstractDrawPanel extends JPanel implements ActionListener
   protected boolean done = false;
   protected boolean started = false;
   protected boolean restarting = false;
+  protected boolean discrete = false;
 
   @Override
   public void start() {
@@ -144,31 +174,21 @@ public abstract class AbstractDrawPanel extends JPanel implements ActionListener
 
   @Override
   public void loop() {
-    if (this.looping) {
-      this.looping = false;
-    } else {
-      this.looping = true;
-    }
+    this.looping = !this.looping;
     if (this.done) {
       tm.addActionListener(this);
     }
   }
 
   @Override
-  public void speed(int newSpeed, boolean paused) {
-    if (!done) {
-      for (ActionListener al : tm.getActionListeners()) {
-        tm.removeActionListener(al);
-      }
-      this.tm.stop();
-      this.n = (int) (1000 / newSpeed);
-      this.tm = new Timer(this.n, this);
-      if (paused) {
-        this.tm.stop();
-      } else {
-        this.tm.start();
-      }
+  public void speed(int newSpeed) {
+    for (ActionListener al : tm.getActionListeners()) {
+      tm.removeActionListener(al);
     }
+    this.speed = newSpeed;
+    this.tm.stop();
+    this.n = (int) (1000 / newSpeed);
+    this.tm = new Timer(this.n, this);
   }
 
   @Override
@@ -179,5 +199,32 @@ public abstract class AbstractDrawPanel extends JPanel implements ActionListener
   @Override
   public boolean isStarted() {
     return this.started;
+  }
+
+  @Override
+  public void discrete(int currSpeed) {
+    this.discrete = !this.discrete;
+    if (discrete) {
+      speed(100);
+    } else {
+      speed(currSpeed);
+    }
+  }
+
+  @Override
+  public boolean isDiscrete() {
+    return this.discrete;
+  }
+
+  protected boolean sloMo = false;
+
+  @Override
+  public void sloMo(int currSpeed, int stopTime) {
+    this.sloMo = !this.sloMo;
+    if (discrete) {
+      speed(1);
+    } else {
+      speed(currSpeed);
+    }
   }
 }

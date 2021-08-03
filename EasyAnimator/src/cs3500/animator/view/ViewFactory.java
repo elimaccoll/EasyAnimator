@@ -55,6 +55,7 @@ public class ViewFactory {
   private final int w;
   private final int h;
   private final int speed;
+  private final Readable slomoRd;
 
   /**
    * Constructor for ViewFactory that generates a supported view based on the inputted parameters.
@@ -68,8 +69,9 @@ public class ViewFactory {
    * @param w     width of canvas.
    * @param h     height of canvas.
    * @param speed speed of animation.
+   * @param slomoRd readable for slow motion input.
    */
-  public ViewFactory(IAnimation model, Appendable ap, int x, int y, int w, int h, int speed) {
+  public ViewFactory(IAnimation model, Appendable ap, int x, int y, int w, int h, int speed, Readable slomoRd) {
     this.model = model;
     this.ap = ap;
     this.x = x;
@@ -77,6 +79,7 @@ public class ViewFactory {
     this.w = w;
     this.h = h;
     this.speed = speed;
+    this.slomoRd=slomoRd;
   }
 
   /**
@@ -92,7 +95,7 @@ public class ViewFactory {
       case SVG:
         return new SVGViewI(model, ap, x, y, w, h, speed);
       case INTERACTIVE:
-        return new CompositeView(model, ap, x, y, w, h, speed);
+        return new CompositeView(model, ap, x, y, w, h, speed, slomoRd);
       default:
         throw new IllegalArgumentException("Unsupported view name: " + name);
     }
