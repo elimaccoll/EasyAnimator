@@ -1,5 +1,0 @@
-# describe slow motion:  start_frame, end_frame, speed in ms
-slow-motion 249 281 1000
-slow-motion 505 537 1000
-slow-motion 761 793 1000
-
